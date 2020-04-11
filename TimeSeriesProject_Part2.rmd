@@ -62,19 +62,19 @@ x=dataTot$attritionRate
 
 # 1 - Describe Data Set
 
-The Data set represents the number of workers who coluntary left a company between 2010 and 2019. The data is real, but is anonymized to maintin the confidentiality of the company.
+The Data set represents the number of workers who voluntary left company A between 2010 and 2019. The data is real, but is anonymized to maintin the confidentiality of the company and its employees.
 
-The business request is forecast the attrition rate  for the entire company for the next 12 months. 
+The business request is forecast of the attrition rate for the entire company for the next 12 months. 
 
-The data set is composed by a single representation with multiple features that can be used to idenitify and build multi-variate models to better forecast the attrition trend.
+The data set is composed of a single representation with multiple features that can be used to idenitify and build multi-variate models in order to forecast the attrition trend.
 
-The data set has  the following columsn
+The data set has the following columns
 
-field|Description
+Field|Description
 ----|-----
-Period| name of the period expressed as Year and Month
+period| name of the period expressed as year and month
 separationsCount| count of people who voluntary left the company
-**attritionRate** | ratio between separationsCount and headcount (the target variable)
+**attritionRate** | ratio between separationsCount and headcount (this is our target variable)
 headcount| total number of workers active in the period
 ageMeanYrs| average age of the active workers 
 tenureMeanYrs | average tenure of the active workers 
@@ -90,18 +90,18 @@ timeID | a unique ID per each period (1 for the first period up to 120 for the l
 
 # 2 - The response from the Dataset
 
-We selected the Variable **attritionRate** as our response, it represents the ratio of poeple who voluntary left the company per each month.
+We selected the variable **attritionRate** as our response, it represents the ratio of people who have voluntary left the company each month.
 
 # 3 - The Scenario
 
-Attrition is an important factor for the company as it operates in a very niche market, requiring workers with very advanced technical knowledge. Once an important worker left the company it takes many months to hire and train a replacement.
-The berst solution to the problem is to predict the trend of attrition and which factors are correlated. The company can operate on these factors to reduce the future attrition.
+Attrition is an important factor for the company, as it operates in a very niche market, requiring workers with very advanced technical knowledge. Once an important worker has left the company, it takes many months to hire and train a replacement.The best solution to the problem is to predict the trend of attrition and attempt to counteract the correlated factors. The company can take action on these factors to reduce future attrition.
 
 # 4 - MODELS
 
-The models are  trained with a dataset without the most recent 12 months, we will use this portion to test the model performance. 
+The models are trained through dataset with the exception of the most recent 12 months, we will use this portion to test each models performance. 
 
-```{r}
+```{r define our test size}
+# under variable TestSize, we have established we will test our data over the most recent 12 periods (measured in months).
 TestSize = 12
 ```
 
@@ -110,18 +110,20 @@ TestSize = 12
 
 ### a. ACF and Spectral analysis
 
-```{r}
+```{r ACF and Spectral}
+# initial plots to explore our current data
+# all data is stored under variable "x"
 p=tswge::plotts.sample.wge(x)
 ```
 
-We have a wandering behavior on the realization. The ACF shows a quasi-cyclic behacior, hint of a seasonality in the data.
-The Parzen Window shows peaks at frequencies 0.17 and 0.34 (~6 and ~3 months).
+From the above graphs it can be observed that we have a wandering behavior in this realization. The ACF shows a quasi-cyclic behacior with a hint of a seasonality in the data.
+The Parzen Window shows peaks at frequencies 0.17 and 0.34, which we can identify through their reciprocal as approximately 6 and 3 months.
 
-Domain knowledge indicates that seasonality in expected, as people tend to voluntary leave the company during specific months (school ends, when financial results and bonuses are communicated). We are going to use a sesonality of **3 months** for this analysis.
+Domain knowledge indicates that seasonality is expected, as people tend to voluntary leave the company during specific months (for example: when school ends or when financial results and bonuses are communicated). We are going to use a sesonality of **3 months** for this analysis as our domain knowledge finds it most appropriate.
 
 ### b. Check for seasonality
 
-Let's see if we have the s=3 or s=6 seasonality in the data
+In order to eliminate any bias, we will establish through factor tables if the seasonal factor of s=3 or s=6 seasonality is in the data.
 
 ```{r}
 tswge::factor.wge(phi=c(rep(0,5),1))
@@ -129,10 +131,10 @@ tswge::factor.wge(phi=c(rep(0,2),1))
 e=tswge::est.ar.wge(x,p=10,type='burg')
 ```
 
-we have a good evidence that the factors of **s=3** $(1-B^3)$ are present in the data. Frequencies fromm $(1-B^3)$ with value $0$ and $0.33$ are present in the data as 0,0 and 0.336, and the factors $(1-1B)$ and $(1+1B+1B^2)$ are present in the data as $(1-0.89B)$ and $(1-+0.8992B+0.754B^2)$. 
+we have a good evidence that the factors of **s=3** $(1-B^3)$ are present in the data. Frequencies from $(1-B^3)$ with value $0$ and $0.33$ are present in the data as 0,0 and 0.336, and the factors $(1-1B)$ and $(1+1B+1B^2)$ are present in the data as $(1-0.89B)$ and $(1-+0.8992B+0.754B^2)$. 
 
 
-Before proceeding with the aic5, we need to **remove the seasonality** ($s=3 months$)
+Before proceeding with the AIC5, we need to **remove the seasonality** ($s=3 months$)
 
 ```{r}
 xtr=tswge::artrans.wge(x,phi.tr=c(rep(0,2),1))
@@ -143,9 +145,9 @@ xtr=tswge::artrans.wge(x,phi.tr=c(rep(0,2),1))
 p=tswge::plotts.sample.wge(xtr)
 ```
 
-Now we can proceed with the aic5 by using the **xtr** variable
+As the data has been transformed over the s=3 seasonality, we can proceed with the aic5 by using the **xtr** variable.
 
-```{r}
+```{r AIC and BIC Testing}
 aic5 = tswge::aic5.wge(xtr,p=0:5,q=0:3,type='aic')
 bic5 = tswge::aic5.wge(xtr,p=0:5,q=0:3,type='bic')
 ```
@@ -167,11 +169,11 @@ p=tswge::plotts.sample.wge(xtr)
 ```
 
 
-The PACF shows  an erratic patern up to AR(9), we can't be sure there is a pure AR model. The  sample autocorrelation shows cycling pattern extending above the value of 0.5, so we should not have an MA only model
+The PACF shows an erratic patern up to AR(9), thus we can't be sure that there is a pure AR model that will fit our attrition trend. The  sample autocorrelation shows cyclical pattern extending above the value of 0.5, so we should expect to not have an MA only model but that we will need other components to model this particular trend.
 
-The aic5.wge with AIC metric shows an ARMA(3,2) and ARMA(4,2) as best models. The aic.wge with BURG metric shows an ARMA(3,2) and an AR(3) as good cadidates for the final model.
+The aic5.wge with AIC metric shows an ARMA(3,2) and ARMA(4,2) as our best models. The aic.wge with BURG metric shows an ARMA(3,2) and an AR(3) as good cadidates for the final model as well.
 
-We are going to try following models
+Therefore, we will proceed with exploring the following models:
 
 - ARMA(3,2) with seasonality of 3 months
 - ARMA(4,2) with seasonality of 3 months
@@ -199,6 +201,8 @@ message('Variance: ',es$avar)
 message('Mean: ',mean(x))
 ```
 
+Upon conclusion of our exploraition, we've concluded that the following our is our final or best fit equation for this model:
+
 $$(1-B^3)(1+0.3055B+0.2485B^2+0.2817B^3)(X_t-0.00734) = (1+0.9476B+0.9635B^2)a_t$$
 $$\hat{\sigma}^2_a = 4.019*10^{-6}$$ 
 
@@ -220,7 +224,7 @@ The ASE of the model is `r format(round(armaASE,8),scientific=FALSE)`
 
 ### a. Selecting multivariate data
 
-As the attrition rate is a proportion of the headcount ($terminations / headcount$), we selected all the endogenous variables that are meaningful for the problem and are expressed as a rate of the headcount. This avoids using a variables that by design are correlated to  the headcount (example: number of supervisors) instead of the attrition rate. 
+As the attrition rate is a proportion of the headcount ($terminations / headcount$), we selected all the endogenous variables that are meaningful for the problem and are expressed as a rate of the headcount. This avoids using any variables that by design are correlated to headcount (example: number of supervisors) instead of the attrition rate. 
 
 In addition, we noted that the recognition variable has data only for the past 2 years. We decided to remove this variable as it has too much missing data.
 
@@ -229,7 +233,7 @@ We specified a seasaonlity of 3 months as suggested by the ARMA model.
 We are not specifying any exogenous variable as the company has no indication of future values for these variables.
 
 
-```{r}
+```{r Selecting Multivariate Data}
 X=dataTot %>% dplyr::select(attritionRate,ageMeanYrs, tenureMeanYrs,  workersPerSupervisor, lowPerfRate, highPerfRate)
 
 
@@ -241,6 +245,7 @@ XTest  = tail(X,TestSize) #12 months
 
 **Attrition and age**
 ```{r fig.height=4, fig.width=8}
+# cross correlation code chunk
 par(mfrow=c(2,3),mar=c(3,2,3,2))
 with(XTrain,{
   ccf(attritionRate,ageMeanYrs)
@@ -253,9 +258,9 @@ with(XTrain,{
 
 The most significant correlations with the Attrition Rate are **Mean Age** with lags of 5 and -5, **tenure** has a significant correlation with lag 6, also **workers per supervisor** has a correlation at lag 5. **Low Performers Ratio** is correlated with a lag of -2.
 
-We can deduct the model may use lags up to 6.
+We can deduce from the above cross correlations that the model may use lags up to 6.
 
-```{r}
+```{r VAR Selection}
 vars::VARselect(XTrain, lag.max = 7, type = 'trend',season = 3, exogen = NULL)
 ```
 
@@ -271,20 +276,20 @@ varFit=VAR(XTrain,p=6,type='trend',season=3,exogen=NULL)
 summary(varFit$varresult$attritionRate)
 ```
 
-We notice the model has a pvalue less than 0.05, hence we can reject the hypothesis the model is not significant
+We noticed the model has a pvalue less than 0.05, hence we can reject the hypothesis the model is not significant
 
 ### d. AIC 
 
 The AIC of the model is `r AIC(varFit)`
 
 **AIC**
-```{r}
+```{r AIC for VARfit}
 AIC(varFit)
 ```
 
 ### e. Model Testing Plot
 
-```{r}
+```{r VAR Prediction and Graph}
 varPred = predict(varFit,n.ahead=TestSize)$fcst$attritionRate[,1]
 varDataPred = cbind(dataTot,pred=NA)
 varDataPred[(nrow(varDataPred)-TestSize+1):nrow(varDataPred),]$pred = varPred
@@ -295,7 +300,7 @@ ggplot(data=varDataPred,aes(x=timeID,y=attritionRate)) +
 ```
 ### f. ASE
 
-```{r}
+```{r VAR ASE}
 varASE = ase(varPred,tail(dataTot,TestSize)$attritionRate)
 ```
 
@@ -305,9 +310,9 @@ The ASE of the model is `r format(round(varASE,8),scientific=FALSE)`
 
 ### a. Selecting multivariate data
 
-We selected the same dataset used for the VAR section
+We selected the same dataset used for the VAR section to establish our next set of variables.
 
-```{r}
+```{r Establishing Time Series Train, Test, and All variables}
 tsTrain = ts(XTrain,start=c(2010,1),frequency = 12)
 tsTest = ts(XTest,start=c(2018,10),frequency = 12)
 tsAll =   ts(rbind(XTrain,XTest),start=c(2010,1),frequency = 12)
@@ -316,7 +321,7 @@ tsAll =   ts(rbind(XTrain,XTest),start=c(2010,1),frequency = 12)
 
 ### b. Model Training
 
-We train the Nerual Network Model by using 20 repetitions and using a difforder of 1 and 3, to reflect the trend and the seasonality we found in previous models. We set lag search parameter from 1 to 6 to reflect the lag we found during the analysis for the VAR model
+We trained the Nerual Network Model by using 20 repetitions and using a difforder of 1 and 3. This reflected the trend and the seasonality we found in previous models. We set lag search parameter from 1 to 6 to incorporate the lag we found during the analysis for the VAR model, ensuring that we have all the components of our previous discoveries to yield the best model moving forward.
 
 ```{r}
 set.seed(1701)
@@ -348,11 +353,11 @@ The ASE of the model is `r format(round(varASE,8),scientific=FALSE)`
 
 ## Ensamble
 
-The Neural Network model has a great ASE performance, but it is not feasable for the business as we need to know the future values of the exogenous variables to calculate the attrition rate prediction. The business has no information about these future values. Furthermore, we cannot predict these valuas as is will increase the error rate and confidence interval. 
+The Neural Network model has great ASE performance, but it is not feasable for the business as we need to know the future values of the exogenous variables to calculate the attrition rate prediction. The business has no information about these future values. Furthermore, we encounter additional uncertainty as we try to predict these values as we have observed an increase the error rate and confidence interval upon modeling them. 
 
 So the best models for the business are VAR and ARMA(3,2). 
 
-We used a **Neural Network** algorithm to combine and improve the predictions of VAR and ARMA models. The model uses the predictions obtained from VAR and ARMA models as predictors, and the real attrition rate as target. This model can then be used to predit the future attrition values.
+We used a **Neural Network** algorithm to combine and improve the predictions of VAR and ARMA models. The model uses the predictions obtained from VAR and ARMA models as predictors, and the real attrition rate as target. This model can then be used to predict the future attrition values.
 
 ### a. Selecting Train and Test datasets
 
@@ -383,7 +388,7 @@ lines(1:nrow(ensTrain2),ensARMAPred,col='red')
 lines(1:nrow(ensTrain2),ensVARPred,col='blue')
 ```
 
-We can see that the VAR prediction has a pattern similar to the prediction, while the ANOVA stays around the mean.
+We can see that the VAR prediction has a pattern similar to the prediction, while the ARIMA stays around the mean.
 
 ### b2. Ensemble Modeling
 ```{r}
@@ -399,11 +404,11 @@ plot(ensFit)
 
 ```
 
-The Neural Network Enseble is using 2 regressors.
+The Neural Network Ensemble is using 2 regressors.
 
 ### c. Model Testing Plot
 
-We are now proceeding to test the ensamble model for the Test dataset 
+We are now proceeding to test the ensemble model for the Test dataset.
 
 ```{r}
 #prediction from ARMA for the  test dataset
@@ -436,7 +441,7 @@ The ASE of the ensemble model is `r format(round(ensASE,8),scientific=FALSE)`
 
 # 5. Comparing Models
 
-Here the ASE performance of the three models
+Below are the ASE performance of the three models:
 
 | Model | ASE |
 |-------|-----|
@@ -445,13 +450,13 @@ Here the ASE performance of the three models
 | Neural Network | `r format(round(nnASE,8),scientific=FALSE)` |
 | Ensemble | `r format(round(ensASE,8),scientific=FALSE)` |
 
-The ASE shows the Ensemble Model has the best Performance.
+Based on the above ASE values, we can see that the Ensemble Model has the best performance.
 
 # 6. Forecast
 
-We use a forecast horizon of 12 months, as it is most realisting intervention time for the company and the speed of the market it is operating in. We are also going to use the **Ensemble Model** to predict  Future Values. 
+We've decided to use a forecast horizon of 12 months, as it is the most realistic intervention time for the company and the speed of the market in which the company is operating in. We are also going to use the **Ensemble Model** to predict future values. 
 
-To run the ensamble model, we need first to create the predictions from the VAR and ARMA models, then we will use the fitted ensemble model to generate the future predictions.
+To run the ensamble model, we first need to create the predictions from the VAR and ARMA models, then we will use the fitted ensemble model to generate the future predictions.
 
 NOTE: The package NNFOR doesn't provide confidence intervals for MLP function [link](https://r.789695.n4.nabble.com/Confidence-Intervals-with-mlp-forecasts-td4758966.html). We will plot, instead, the predictions from all the runs of the Neural Network model.
 
@@ -482,5 +487,4 @@ ts.plot(tsTrain[,'attritionRate'], ensFuture$all.mean, ensFuture$mean, col = c('
 #lines((showLast+1):(horizon + showLast),ensFuture$low,col='red')
 ```
 
-We can see the forecast follows the pattern and sycles of the previous values, this is in line with the business expectations.
-
+We can see the forecast follows the pattern and cycles of the previously recorded values, this is in line with the business expectations.
